@@ -21,7 +21,15 @@ function previewVueTemplate(iconArray: string): string {
         class="grid__item"
         @click="copyName(item.name)"
       >
-        <SvgIcon :name="item.name" :size="28" />
+        <svg
+          aria-hidden="true"
+          :style="styleComputed"
+        >
+          <use
+            :href="getSymbolId(item.name)"
+            :fill="color"
+          />
+        </svg>
         <div class="tooltip">
           <div class="tooltip__path">{{ item.path }}</div>
           <div class="tooltip__actions">
@@ -39,20 +47,27 @@ function previewVueTemplate(iconArray: string): string {
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { SvgIconName } from '@/types/generated-svg-names';
-import SvgIcon from '@/components/SvgIcon.vue';
 
-type IconItem = { name: SvgIconName; path: string };
+type IconItem = { name: string; path: string };
 const icons: readonly IconItem[] = ${iconArray};
 
 const keyword = ref('');
 const copied = ref('');
+const color = 'currentColor';
+const styleComputed = computed(() => ({
+  width: '28px',
+  height: '28px',
+}));
 
 const filteredIcons = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
   if (!kw) return icons;
   return icons.filter(item => item.name.toLowerCase().includes(kw) || item.path.toLowerCase().includes(kw));
 });
+
+function getSymbolId(name: string): string {
+  return '#icon-' + name;
+}
 
 async function copy(text: string) {
   try {
@@ -64,12 +79,12 @@ async function copy(text: string) {
   }
 }
 
-function copyName(name: SvgIconName) {
+function copyName(name: string) {
   copy(name);
 }
 
-function copyCode(name: SvgIconName) {
-  copy(\`<SvgIcon :name="'\${name}'" />\`);
+function copyCode(name: string) {
+  copy(\`<SvgIcon name="\${name}" size="28" />\`);
 }
 </script>
 
