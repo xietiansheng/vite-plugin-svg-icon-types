@@ -3,7 +3,7 @@ import { FILE_HEADER } from "../config/defaults";
 import type { IconEntry } from "../types";
 
 function previewVueTemplate(iconArray: string): string {
-  return `<!-- 此文件由插件自动生成，请勿手动修改 -->
+  return `<!-- !!! 此文件由插件自动生成，请勿手动修改 !!! -->
 <template>
   <div class="page">
     <header class="page__header">
@@ -247,7 +247,10 @@ createApp(Preview).mount('#app');
 `;
 }
 
-export function buildPreviewHtml(previewMainFile: string, root: string): string {
+export function buildPreviewHtml(
+  previewMainFile: string,
+  root: string
+): string {
   const mainPath = toPublicPath(previewMainFile, root);
   return `<!doctype html>
 <html lang="zh-CN">

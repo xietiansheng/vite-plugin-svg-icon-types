@@ -1,4 +1,4 @@
-# Vite Plugin: svg-icon-types
+# Vite Plugin: vite-plugin-svg-icon-types
 
 自动扫描 SVG 目录，生成类型声明和可视化预览页面的 Vite 插件。用来给类似 `SvgIcon` 组件的 `name` 属性提供字面量类型提示，同时提供一个无需额外配置的图标预览/复制界面。
 
@@ -14,7 +14,7 @@
 ## 安装
 
 ```
-pnpm add -D svg-icon-types
+pnpm add -D vite-plugin-svg-icon-types
 # 或 npm/yarn
 ```
 
@@ -22,14 +22,14 @@ pnpm add -D svg-icon-types
 
 ```ts
 // vite.config.ts
-import svgIconTypes from "svg-icon-types";
+import svgIconTypes from "vite-plugin-svg-icon-types";
 
 export default defineConfig({
   plugins: [svgIconTypes()],
 });
 ```
 
-启动 dev：`pnpm dev`，访问 `http://localhost:5173/tmp/icon-preview.html`（按你的 host/port 调整）。
+启动 dev：`pnpm dev`，访问 `http://localhost:xxxx/tmp/icon-preview.html`（按你的 host/port 调整）。
 
 ## 预览页能力
 
@@ -48,6 +48,7 @@ export default defineConfig({
 ## 可选配置
 
 ```ts
+// ⚠️ 以下所有参数均为默认值，所有参数均为可选
 svgIconTypes({
   iconsDir: "src/assets/svg", // 扫描目录
   output: "src/types/generated-svg-names.d.ts", // 类型输出
@@ -62,9 +63,6 @@ svgIconTypes({
 
 - 图标名称由文件相对路径用 `-` 连接得到（目录/文件名中的 `/` -> `-`），去掉 `.svg`
 - 需在项目中有一个组件 `<SvgIcon :name="SvgIconName" />`，配合 `virtual:svg-icons-register` 等雪碧图注册方式使用
-
-## 开发/发布
-
-- 核心在 `vite/plugins/svg-icon-types.ts`
-- 使用 Node `fs/promises`，无外部依赖
-- 如果以 esbuild 打包，请把 `type` 保持为 `module` 或使用 `esm` 输出；需将模板字符串中的反引号和换行保持原样
+- 生成的类型声明文件中，类型名为 `SvgIconName`
+- 预览页面路径为 `/tmp/icon-preview.html`
+- 预览页面使用 Vue 3 + Vite 构建

@@ -1,6 +1,6 @@
 export const PLUGIN_NAME = "vite-plugin-svg-icon-name";
 
-export const FILE_HEADER = "// ⚠️ 此文件为自动生成，请勿手动修改";
+export const FILE_HEADER = "// !!! 此文件为自动生成，请勿手动修改 !!!";
 
 export const DEFAULT_PATHS = {
   iconsDir: "src/assets/svg",
