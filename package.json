@@ -1,0 +1,37 @@
+{
+  "name": "vite-plugin-svg-icon-types",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Vite plugin that generates typed svg icon names and a preview page.",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "vite-plugin",
+    "svg",
+    "icons",
+    "types",
+    "preview"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "esbuild": "^0.23.0",
+    "rollup": "^4.53.3",
+    "typescript": "^5.3.3",
+    "vite": "^5.2.0"
+  }
+}
