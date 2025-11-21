@@ -6,7 +6,7 @@
 
 - 扫描目录：默认 `src/assets/svg`，递归收集 `.svg`
 - 类型声明：生成 `src/types/generated-svg-names.d.ts`，按字典序输出 union
-- 预览页面：生成 `src/icon-preview/generated-preview.vue`、`src/icon-preview/main.ts`、`icon-preview.html`
+- 预览页面：生成 `tmp/icon-preview/generated-preview.vue`、`tmp/icon-preview/main.ts`、`tmp/icon-preview.html`
 - 多入口：自动把 `icon-preview.html` 注入 Vite/Rollup `input`
 - Watch：dev 时监听 SVG 变更，自动重生成
 - 防抖写入：内容不变不重写，避免 HMR 死循环
@@ -29,7 +29,7 @@ export default defineConfig({
 });
 ```
 
-启动 dev：`pnpm dev`，访问 `http://localhost:5173/icon-preview.html`（按你的 host/port 调整）。
+启动 dev：`pnpm dev`，访问 `http://localhost:5173/tmp/icon-preview.html`（按你的 host/port 调整）。
 
 ## 预览页能力
 
@@ -41,9 +41,9 @@ export default defineConfig({
 ## 默认生成的文件
 
 - `src/types/generated-svg-names.d.ts`
-- `src/icon-preview/generated-preview.vue`
-- `src/icon-preview/main.ts`
-- `icon-preview.html`（作为多入口）
+- `tmp/icon-preview/generated-preview.vue`
+- `tmp/icon-preview/main.ts`
+- `tmp/icon-preview.html`（作为多入口）
 
 ## 可选配置
 
@@ -51,9 +51,9 @@ export default defineConfig({
 svgIconTypes({
   iconsDir: "src/assets/svg", // 扫描目录
   output: "src/types/generated-svg-names.d.ts", // 类型输出
-  previewVueOutput: "src/icon-preview/generated-preview.vue",
-  previewMainOutput: "src/icon-preview/main.ts",
-  previewHtmlOutput: "icon-preview.html",
+  previewVueOutput: "tmp/icon-preview/generated-preview.vue",
+  previewMainOutput: "tmp/icon-preview/main.ts",
+  previewHtmlOutput: "tmp/icon-preview.html",
   debounceMs: 100,
 });
 ```
