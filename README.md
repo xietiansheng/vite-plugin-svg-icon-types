@@ -29,6 +29,17 @@ export default defineConfig({
 });
 ```
 
+CommonJS 也可直接使用：
+
+```js
+// vite.config.cjs
+const svgIconTypes = require("vite-plugin-svg-icon-types").default;
+
+module.exports = {
+  plugins: [svgIconTypes()],
+};
+```
+
 启动 dev：`pnpm dev`，访问 `http://localhost:xxxx/tmp/icon-preview.html`（按你的 host/port 调整）。
 
 ## 预览页能力

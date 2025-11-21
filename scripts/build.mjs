@@ -12,10 +12,25 @@ async function run() {
 
   await build({
     entryPoints: [resolve(root, "src/index.ts")],
-    outfile: resolve(dist, "index.js"),
+    outdir: dist,
     bundle: true,
     platform: "node",
     format: "esm",
+    target: "node18",
+    sourcemap: true,
+    logLevel: "info",
+    banner: {
+      js: `// Built from ${resolve(root)}`,
+    },
+  });
+
+  await build({
+    entryPoints: [resolve(root, "src/index.ts")],
+    outdir: dist,
+    outExtension: { ".js": ".cjs" },
+    bundle: true,
+    platform: "node",
+    format: "cjs",
     target: "node18",
     sourcemap: true,
     logLevel: "info",
