@@ -13,6 +13,15 @@ export default function SvgIconNamePlugin(options: PluginOptions = {}): Plugin {
 
   let resolved: ResolvedPluginOptions | null = null;
   let debounceTimer: NodeJS.Timeout | null = null;
+  let previewUrlPath = "";
+
+  const joinBase = (base: string, previewHtml: string) => {
+    const normalizedBase = base === "/" ? "" : base.replace(/\/$/, "");
+    const normalizedPath = previewHtml.startsWith("/")
+      ? previewHtml
+      : `/${previewHtml}`;
+    return `${normalizedBase}${normalizedPath}`;
+  };
 
   async function runGenerate(context: "build" | "serve"): Promise<void> {
     if (!resolved) return;
@@ -54,6 +63,8 @@ export default function SvgIconNamePlugin(options: PluginOptions = {}): Plugin {
     },
     configResolved(config) {
       resolved = resolvePluginOptions(options, config.root);
+      const previewHtml = options.previewHtmlOutput ?? DEFAULT_PATHS.previewHtml;
+      previewUrlPath = joinBase(config.base ?? "/", previewHtml);
     },
     async buildStart() {
       await runGenerate("build");
@@ -86,6 +97,29 @@ export default function SvgIconNamePlugin(options: PluginOptions = {}): Plugin {
         watcher.off("unlinkDir", handleChange);
         if (debounceTimer) clearTimeout(debounceTimer);
       });
+
+      const logPreviewUrl = () => {
+        if (!server.httpServer) return;
+        const addr = server.httpServer.address();
+        const protocol = server.config.server?.https ? "https" : "http";
+        const host =
+          typeof addr === "object" && addr?.address && addr.address !== "::"
+            ? addr.address
+            : "localhost";
+        const port =
+          typeof addr === "object"
+            ? addr?.port
+            : server.config.server?.port ?? 5173;
+        console.log(
+          `[${PLUGIN_NAME}] icon preview: ${protocol}://${host}:${port}${previewUrlPath}`,
+        );
+      };
+
+      if (server.httpServer?.listening) {
+        logPreviewUrl();
+      } else {
+        server.httpServer?.once("listening", logPreviewUrl);
+      }
     },
   };
 }

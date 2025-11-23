@@ -5,117 +5,180 @@ import type { IconEntry } from "../types";
 function previewVueTemplate(iconArray: string): string {
   return `<!-- !!! 此文件由插件自动生成，请勿手动修改 !!! -->
 <template>
-  <div class="page">
-    <header class="page__header">
-      <div class="page__title">SVG Icon Preview</div>
-      <div class="page__meta">{{ filteredIcons.length }} / {{ icons.length }} icons</div>
-    </header>
-    <div class="page__search">
-      <input v-model="keyword" type="text" placeholder="搜索图标名称" />
-      <button class="page__clear" @click="keyword = ''" v-if="keyword">清空</button>
-    </div>
-    <div class="grid">
-      <button
-        v-for="item in filteredIcons"
-        :key="item.name"
-        class="grid__item"
-        @click="selectIcon(item)"
-      >
-        <svg aria-hidden="true" :style="iconBaseStyle">
-          <use
-            :href="getSymbolId(item.name)"
-            fill="currentColor"
-          />
-        </svg>
-      </button>
-    </div>
-    <div v-if="!filteredIcons.length" class="empty">暂无匹配的图标</div>
-    <div v-if="selectedIcon" class="preview">
-      <div class="preview__row">
-        <div class="preview__icon">
-          <svg aria-hidden="true" :style="previewIconStyle">
+  <div class="layout">
+    <div class="page">
+      <header class="page__header">
+        <div class="page__title">SVG Icon Preview</div>
+        <div class="page__meta">{{ filteredIcons.length }} / {{ icons.length }} icons</div>
+      </header>
+      <div class="page__search">
+        <input v-model="keyword" type="text" placeholder="搜索图标名称" />
+        <button class="page__clear" @click="keyword = ''" v-if="keyword">清空</button>
+      </div>
+      <div class="view-toggle"> 
+       <button
+          type="button"
+          class="view-toggle__btn"
+          :class="{ active: viewMode === 'all' }"
+          @click="viewMode = 'all'"
+        >
+          全部展示
+        </button>
+        <button
+          type="button"
+          class="view-toggle__btn"
+          :class="{ active: viewMode === 'group' }"
+          @click="viewMode = 'group'"
+        >
+          文件夹分类
+        </button>
+      </div>
+      <div class="groups" v-if="viewMode === 'group' && groupedIcons.length">
+        <section
+          v-for="group in groupedIcons"
+          :key="group.category"
+          class="group"
+        >
+          <header class="group__header">
+            <div class="group__title">{{ group.category }}</div>
+            <div class="group__count">{{ group.items.length }} 个</div>
+          </header>
+          <div class="grid">
+            <button
+              v-for="item in group.items"
+              :key="item.name"
+              class="grid__item"
+              @click="selectIcon(item)"
+            >
+              <svg aria-hidden="true" :style="iconBaseStyle">
+                <use
+                  :href="getSymbolId(item.name)"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </div>
+        </section>
+      </div>
+      <div v-else-if="viewMode === 'group'" class="empty">暂无匹配的图标</div>
+      <div class="grid" v-if="viewMode === 'all' && filteredIcons.length">
+        <button
+          v-for="item in filteredIcons"
+          :key="item.name"
+          class="grid__item"
+          @click="selectIcon(item)"
+        >
+          <svg aria-hidden="true" :style="iconBaseStyle">
             <use
-              :href="getSymbolId(selectedIcon.name)"
-              :fill="colorValue"
+              :href="getSymbolId(item.name)"
+              fill="currentColor"
             />
           </svg>
-          <div class="preview__name">{{ selectedIcon.name }}</div>
-        </div>
-        <div class="preview__controls">
-          <div class="color-panel">
-            <div class="color-panel__header">颜色</div>
-            <div class="color-panel__inputs">
-              <input
-                type="color"
-                v-model="colorHexPicker"
-                class="input input--color"
-                aria-label="color picker"
-              />
-              <input
-                v-model="colorInputValue"
-                class="input"
-                :placeholder="colorFormat === 'hex' ? '#38bdf8' : 'rgb(56, 189, 248)'"
-              />
-            </div>
-            <div class="format-toggle" role="radiogroup" aria-label="color format">
-              <button
-                type="button"
-                class="format-toggle__option"
-                :class="{ active: colorFormat === 'hex' }"
-                @click="colorFormat = 'hex'"
-                aria-pressed="colorFormat === 'hex'"
-              >
-                Hex
-              </button>
-              <button
-                type="button"
-                class="format-toggle__option"
-                :class="{ active: colorFormat === 'rgb' }"
-                @click="colorFormat = 'rgb'"
-                aria-pressed="colorFormat === 'rgb'"
-              >
-                RGB
-              </button>
-            </div>
-          </div>
-          <div class="rotate">
-            <div class="rotate__label">旋转 (°)</div>
-            <div class="rotate__control">
-              <button type="button" class="rotate__btn" @click="changeRotate(-10)">-10</button>
-              <input
-                v-model.number="rotateDeg"
-                class="input rotate__input"
-                type="number"
-                step="10"
-              />
-              <button type="button" class="rotate__btn" @click="changeRotate(10)">+10</button>
-            </div>
-          </div>
-        </div>
+        </button>
       </div>
-      <div class="preview__path" title="图标路径">{{ selectedIcon.path }}</div>
-      <div class="preview__actions">
-        <button @click="copyCode(selectedIcon.name)">复制图标</button>
-        <button @click="copyPath(selectedIcon.path)">复制路径</button>
-        <button @click="copyStyle()">复制样式</button>
-      </div>
+      <div v-else-if="viewMode === 'all'" class="empty">暂无匹配的图标</div>
+      <div v-if="copied" class="toast">已复制：{{ copied }}</div>
     </div>
-    <div v-if="copied" class="toast">已复制：{{ copied }}</div>
+    <aside class="side">
+      <div class="side__header">
+        <div class="side__title">图标功能</div>
+        <button class="side__clear" type="button" @click="closeDrawer">清空选择</button>
+      </div>
+      <div v-if="selectedIcon" class="preview">
+        <div class="preview__row">
+          <div class="preview__icon">
+            <svg aria-hidden="true" :style="previewIconStyle">
+                <use
+                  :href="getSymbolId(selectedIcon.name)"
+                  :fill="colorValue || 'currentColor'"
+                />
+            </svg>
+          </div>
+          <div class="preview__controls">
+            <div class="color-panel">
+              <div class="color-panel__header">
+                <span>颜色</span>
+                <div class="color-panel__actions">
+                  <div class="format-toggle" role="radiogroup" aria-label="color format">
+                    <button
+                      type="button"
+                      class="format-toggle__option"
+                      :class="{ active: colorFormat === 'hex' }"
+                      @click="colorFormat = 'hex'"
+                      aria-pressed="colorFormat === 'hex'"
+                    >
+                      Hex
+                    </button>
+                    <button
+                      type="button"
+                      class="format-toggle__option"
+                      :class="{ active: colorFormat === 'rgb' }"
+                      @click="colorFormat = 'rgb'"
+                      aria-pressed="colorFormat === 'rgb'"
+                    >
+                      RGB
+                    </button>
+                  </div>
+                  <button type="button" class="color-panel__reset" @click="resetColor">重置</button>
+                </div>
+              </div>
+              <div class="color-panel__inputs">
+                <input
+                  type="color"
+                  v-model="colorHexPicker"
+                  class="input input--color"
+                  aria-label="color picker"
+                />
+                <input
+                  v-model="colorInputValue"
+                  class="input"
+                  :placeholder="colorFormat === 'hex' ? '#38bdf8' : 'rgb(56, 189, 248)'"
+                />
+              </div>
+            </div>
+            <div class="rotate">
+              <div class="rotate__label">旋转 (°)</div>
+              <div class="rotate__control">
+                <button type="button" class="rotate__btn" @click="changeRotate(-45)">-45</button>
+                <input
+                  v-model.number="rotateDeg"
+                  class="input rotate__input"
+                  type="number"
+                  step="45"
+                />
+                <button type="button" class="rotate__btn" @click="changeRotate(45)">+45</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="preview__path" title="图标路径">{{ selectedIcon.path }}</div>
+        <div class="preview__actions">
+          <button @click="copyCode(selectedIcon.name)">复制代码</button>
+          <button @click="copyName(selectedIcon.name)">复制 SvgName</button>
+          <button @click="copyPath(selectedIcon.path)">复制路径</button>
+          <button @click="copyStyle()">复制样式</button>
+        </div>
+      </div>
+      <div v-else class="side__empty">点击左侧图标以预览和复制</div>
+    </aside>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
-type IconItem = { name: string; path: string };
+type IconItem = { name: string; path: string; category: string };
+type IconItemGroup = { category: string; items: IconItem[] };
 const icons: readonly IconItem[] = ${iconArray};
 
 const keyword = ref('');
 const copied = ref('');
 const colorFormat = ref<'hex' | 'rgb'>('hex');
-const color = ref({ r: 56, g: 189, b: 248 });
+type RGB = { r: number; g: number; b: number };
+const color = ref<RGB | null>(null);
 const rotateDeg = ref(0);
 const selectedIcon = ref<IconItem | null>(null);
+const viewMode = ref<'group' | 'all'>('all');
 
 const iconBaseStyle = {
   width: '30px',
@@ -128,16 +191,39 @@ const filteredIcons = computed(() => {
   return icons.filter(item => item.name.toLowerCase().includes(kw) || item.path.toLowerCase().includes(kw));
 });
 
-const colorHexString = computed(() => rgbToHex(color.value));
-const colorRgbString = computed(() => rgbToString(color.value));
+const groupedIcons = computed<IconItemGroup[]>(() => {
+  const groups: Record<string, IconItem[]> = {};
+  filteredIcons.value.forEach((item) => {
+    const cat = item.category || 'root';
+    (groups[cat] ??= []).push(item);
+  });
+  return Object.entries(groups)
+    .sort(([a], [b]) => {
+      if (a === 'root') return -1;
+      if (b === 'root') return 1;
+      return a.localeCompare(b, 'zh-Hans');
+    })
+    .map(([category, items]) => ({ category, items }));
+});
 
-const colorValue = computed(() => (colorFormat.value === 'hex' ? colorHexString.value : colorRgbString.value));
+const colorHexString = computed(() => (color.value ? rgbToHex(color.value) : ''));
+const colorRgbString = computed(() => (color.value ? rgbToString(color.value) : ''));
+
+const colorValue = computed(() => {
+  if (!color.value) return '';
+  return colorFormat.value === 'hex' ? colorHexString.value : colorRgbString.value;
+});
 
 const colorInputValue = computed({
   get() {
+    if (!color.value) return '';
     return colorFormat.value === 'hex' ? colorHexString.value : colorRgbString.value;
   },
   set(value: string) {
+    if (!value.trim()) {
+      color.value = null;
+      return;
+    }
     const parsed = colorFormat.value === 'hex' ? hexToRgb(value) : rgbTextToRgb(value);
     if (parsed) color.value = parsed;
   },
@@ -145,7 +231,7 @@ const colorInputValue = computed({
 
 const colorHexPicker = computed({
   get() {
-    return colorHexString.value;
+    return colorHexString.value || '#000000';
   },
   set(value: string) {
     const parsed = hexToRgb(value);
@@ -155,17 +241,21 @@ const colorHexPicker = computed({
 
 const previewIconStyle = computed(() => {
   const deg = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
+  const fillValue = colorValue.value || 'currentColor';
   return {
     width: '80px',
     height: '80px',
-    color: colorValue.value,
+    color: fillValue,
     transform: \`rotate(\${deg}deg)\`,
   };
 });
 
 const styleString = computed(() => {
   const deg = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
-  return \`fill:\${colorValue.value};transform:rotate(\${deg}deg);\`;
+  const parts = [];
+  if (colorValue.value) parts.push(\`fill:\${colorValue.value};\`);
+  parts.push(\`transform:rotate(\${deg}deg);\`);
+  return parts.join('');
 });
 
 function getSymbolId(name: string): string {
@@ -190,13 +280,39 @@ function copyPath(path: string) {
   copy(path);
 }
 
+function copyName(name: string) {
+  copy(name);
+}
+
 function copyCode(name: string) {
-  copy(\`<SvgIcon name="\${name}" size="28" />\`);
+  copy(\`<SvgIcon name="\${name}" size="28" style="\${styleString.value}" />\`);
 }
 
 function copyStyle() {
   copy(styleString.value);
 }
+
+function resetColor() {
+  color.value = null;
+  colorFormat.value = 'hex';
+}
+
+function closeDrawer() {
+  selectedIcon.value = null;
+}
+
+function normalizeRotation(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value >= 360 || value <= -360) return 0;
+  return value;
+}
+
+watch(rotateDeg, (val) => {
+  const normalized = normalizeRotation(val);
+  if (normalized !== val) {
+    rotateDeg.value = normalized;
+  }
+});
 
 function rgbToHex({ r, g, b }: { r: number; g: number; b: number }): string {
   return (
@@ -237,7 +353,7 @@ function rgbTextToRgb(value: string): { r: number; g: number; b: number } | null
 
 function changeRotate(delta: number) {
   const current = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
-  rotateDeg.value = current + delta;
+  rotateDeg.value = normalizeRotation(current + delta);
 }
 </script>
 
@@ -253,13 +369,22 @@ function changeRotate(delta: number) {
   color: #e2e8f0;
   overflow-x: hidden;
 }
+.layout {
+  min-height: 100vh;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: flex-start;
+}
 .page {
-  padding: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(1200px, 100%);
-  margin: 0 auto;
+  flex: 1;
+  background: rgba(11, 18, 32, 0.6);
+  border: 1px solid #1e293b;
+  border-radius: 14px;
 }
 .page__header {
   display: flex;
@@ -300,11 +425,104 @@ function changeRotate(delta: number) {
   padding: 0 12px;
   cursor: pointer;
 }
+.side {
+  width: min(520px, 40vw);
+  background: rgba(11, 18, 32, 0.9);
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.side__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #e2e8f0;
+}
+.side__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.side__clear {
+  border: 1px solid #1e293b;
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.side__clear:hover {
+  background: rgba(56, 189, 248, 0.12);
+}
+.side__empty {
+  color: #94a3b8;
+  font-size: 13px;
+}
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(11, 18, 32, 0.8);
+  width: fit-content;
+}
+.view-toggle__btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.view-toggle__btn + .view-toggle__btn {
+  border-left: 1px solid #1e293b;
+}
+.view-toggle__btn.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: #e2e8f0;
+}
+.side .preview {
+  margin: 0;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
   gap: 12px;
   width: 100%;
+}
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  background: rgba(11, 18, 32, 0.5);
+}
+.group__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+.group__title {
+  font-weight: 600;
+}
+.group__count {
+  color: #94a3b8;
 }
 .grid__item {
   border: 1px solid #1e293b;
@@ -357,11 +575,6 @@ function changeRotate(delta: number) {
   justify-content: center;
   min-width: 160px;
 }
-.preview__name {
-  font-size: 13px;
-  color: #cbd5e1;
-  word-break: break-all;
-}
 .preview__controls {
   display: flex;
   gap: 12px;
@@ -374,8 +587,17 @@ function changeRotate(delta: number) {
   min-width: 240px;
 }
 .color-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   color: #cbd5e1;
   font-size: 13px;
+}
+.color-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .color-panel__inputs {
   display: flex;
@@ -411,6 +633,20 @@ function changeRotate(delta: number) {
   background: rgba(56, 189, 248, 0.12);
   color: #e2e8f0;
 }
+.color-panel__reset {
+  border: 1px solid #1e293b;
+  background: rgba(11, 18, 32, 0.8);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.color-panel__reset:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.6);
+}
 .preview__controls label {
   display: flex;
   flex-direction: column;
@@ -424,7 +660,6 @@ function changeRotate(delta: number) {
   border: 1px solid #1e293b;
   background: #0b1220;
   color: #e2e8f0;
-  border-radius: 8px;
 }
 .input:focus {
   outline: 2px solid #38bdf8;
@@ -460,7 +695,8 @@ function changeRotate(delta: number) {
 .rotate {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 18px;
+  padding-top: 8px;
   min-width: 220px;
 }
 .rotate__label {
@@ -529,11 +765,20 @@ export function buildTypeFile(names: string[]): string {
 
 export function buildPreviewVue(entries: IconEntry[]): string {
   const sorted = [...entries].sort((a, b) => a.name.localeCompare(b.name));
+  const toCategory = (filePath: string): string => {
+    const normalized = filePath.replace(/\\/g, "/");
+    const parts = normalized.split("/").filter(Boolean);
+    if (parts.length < 2) return "root";
+    return parts[parts.length - 2] || "root";
+  };
   const iconArray =
     sorted.length === 0
       ? "[] as const"
       : `[\n${sorted
-          .map((n) => `  { name: '${n.name}', path: '${n.path}' },`)
+          .map((n) => {
+            const category = toCategory(n.path).replace(/'/g, "\\'");
+            return `  { name: '${n.name}', path: '${n.path}', category: '${category}' },`;
+          })
           .join("\n")}\n] as const`;
   return previewVueTemplate(iconArray);
 }
