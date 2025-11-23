@@ -19,29 +19,88 @@ function previewVueTemplate(iconArray: string): string {
         v-for="item in filteredIcons"
         :key="item.name"
         class="grid__item"
-        @click="copyName(item.name)"
+        @click="selectIcon(item)"
       >
-        <svg
-          aria-hidden="true"
-          :style="styleComputed"
-        >
+        <svg aria-hidden="true" :style="iconBaseStyle">
           <use
             :href="getSymbolId(item.name)"
-            :fill="color"
+            fill="currentColor"
           />
         </svg>
-        <div class="tooltip">
-          <div class="tooltip__path">{{ item.path }}</div>
-          <div class="tooltip__actions">
-            <button @click.stop="copyName(item.name)">复制名称</button>
-            <button @click.stop="copyName(item.path)">复制路径</button>
-            <button @click.stop="copyCode(item.name)">复制代码</button>
-          </div>
-        </div>
       </button>
     </div>
-    <div v-if="copied" class="toast">已复制：{{ copied }}</div>
     <div v-if="!filteredIcons.length" class="empty">暂无匹配的图标</div>
+    <div v-if="selectedIcon" class="preview">
+      <div class="preview__row">
+        <div class="preview__icon">
+          <svg aria-hidden="true" :style="previewIconStyle">
+            <use
+              :href="getSymbolId(selectedIcon.name)"
+              :fill="colorValue"
+            />
+          </svg>
+          <div class="preview__name">{{ selectedIcon.name }}</div>
+        </div>
+        <div class="preview__controls">
+          <div class="color-panel">
+            <div class="color-panel__header">颜色</div>
+            <div class="color-panel__inputs">
+              <input
+                type="color"
+                v-model="colorHexPicker"
+                class="input input--color"
+                aria-label="color picker"
+              />
+              <input
+                v-model="colorInputValue"
+                class="input"
+                :placeholder="colorFormat === 'hex' ? '#38bdf8' : 'rgb(56, 189, 248)'"
+              />
+            </div>
+            <div class="format-toggle" role="radiogroup" aria-label="color format">
+              <button
+                type="button"
+                class="format-toggle__option"
+                :class="{ active: colorFormat === 'hex' }"
+                @click="colorFormat = 'hex'"
+                aria-pressed="colorFormat === 'hex'"
+              >
+                Hex
+              </button>
+              <button
+                type="button"
+                class="format-toggle__option"
+                :class="{ active: colorFormat === 'rgb' }"
+                @click="colorFormat = 'rgb'"
+                aria-pressed="colorFormat === 'rgb'"
+              >
+                RGB
+              </button>
+            </div>
+          </div>
+          <div class="rotate">
+            <div class="rotate__label">旋转 (°)</div>
+            <div class="rotate__control">
+              <button type="button" class="rotate__btn" @click="changeRotate(-10)">-10</button>
+              <input
+                v-model.number="rotateDeg"
+                class="input rotate__input"
+                type="number"
+                step="10"
+              />
+              <button type="button" class="rotate__btn" @click="changeRotate(10)">+10</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview__path" title="图标路径">{{ selectedIcon.path }}</div>
+      <div class="preview__actions">
+        <button @click="copyCode(selectedIcon.name)">复制图标</button>
+        <button @click="copyPath(selectedIcon.path)">复制路径</button>
+        <button @click="copyStyle()">复制样式</button>
+      </div>
+    </div>
+    <div v-if="copied" class="toast">已复制：{{ copied }}</div>
   </div>
 </template>
 
@@ -53,16 +112,60 @@ const icons: readonly IconItem[] = ${iconArray};
 
 const keyword = ref('');
 const copied = ref('');
-const color = 'currentColor';
-const styleComputed = computed(() => ({
-  width: '28px',
-  height: '28px',
-}));
+const colorFormat = ref<'hex' | 'rgb'>('hex');
+const color = ref({ r: 56, g: 189, b: 248 });
+const rotateDeg = ref(0);
+const selectedIcon = ref<IconItem | null>(null);
+
+const iconBaseStyle = {
+  width: '30px',
+  height: '30px',
+};
 
 const filteredIcons = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
   if (!kw) return icons;
   return icons.filter(item => item.name.toLowerCase().includes(kw) || item.path.toLowerCase().includes(kw));
+});
+
+const colorHexString = computed(() => rgbToHex(color.value));
+const colorRgbString = computed(() => rgbToString(color.value));
+
+const colorValue = computed(() => (colorFormat.value === 'hex' ? colorHexString.value : colorRgbString.value));
+
+const colorInputValue = computed({
+  get() {
+    return colorFormat.value === 'hex' ? colorHexString.value : colorRgbString.value;
+  },
+  set(value: string) {
+    const parsed = colorFormat.value === 'hex' ? hexToRgb(value) : rgbTextToRgb(value);
+    if (parsed) color.value = parsed;
+  },
+});
+
+const colorHexPicker = computed({
+  get() {
+    return colorHexString.value;
+  },
+  set(value: string) {
+    const parsed = hexToRgb(value);
+    if (parsed) color.value = parsed;
+  },
+});
+
+const previewIconStyle = computed(() => {
+  const deg = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
+  return {
+    width: '80px',
+    height: '80px',
+    color: colorValue.value,
+    transform: \`rotate(\${deg}deg)\`,
+  };
+});
+
+const styleString = computed(() => {
+  const deg = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
+  return \`fill:\${colorValue.value};transform:rotate(\${deg}deg);\`;
 });
 
 function getSymbolId(name: string): string {
@@ -79,26 +182,84 @@ async function copy(text: string) {
   }
 }
 
-function copyName(name: string) {
-  copy(name);
+function selectIcon(item: IconItem) {
+  selectedIcon.value = item;
+}
+
+function copyPath(path: string) {
+  copy(path);
 }
 
 function copyCode(name: string) {
   copy(\`<SvgIcon name="\${name}" size="28" />\`);
 }
+
+function copyStyle() {
+  copy(styleString.value);
+}
+
+function rgbToHex({ r, g, b }: { r: number; g: number; b: number }): string {
+  return (
+    '#' +
+    [r, g, b]
+      .map(v => {
+        const clamped = Math.min(255, Math.max(0, Math.round(v)));
+        return clamped.toString(16).padStart(2, '0');
+      })
+      .join('')
+  );
+}
+
+function rgbToString({ r, g, b }: { r: number; g: number; b: number }): string {
+  const clamp = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
+  return \`rgb(\${clamp(r)}, \${clamp(g)}, \${clamp(b)})\`;
+}
+
+function hexToRgb(value: string): { r: number; g: number; b: number } | null {
+  const hex = value.trim().replace('#', '');
+  if (![3, 6].includes(hex.length)) return null;
+  const normalized = hex.length === 3 ? hex.split('').map(ch => ch + ch).join('') : hex;
+  const num = Number.parseInt(normalized, 16);
+  if (Number.isNaN(num)) return null;
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function rgbTextToRgb(value: string): { r: number; g: number; b: number } | null {
+  const match = value
+    .trim()
+    .replace(/\s+/g, '')
+    .match(/^rgba?\((\d{1,3}),(\d{1,3}),(\d{1,3})(?:,[0-9.]+)?\)$/i);
+  if (!match) return null;
+  const [r, g, b] = match.slice(1, 4).map(Number);
+  if ([r, g, b].some(v => Number.isNaN(v))) return null;
+  return { r, g, b };
+}
+
+function changeRotate(delta: number) {
+  const current = Number.isFinite(rotateDeg.value) ? rotateDeg.value : 0;
+  rotateDeg.value = current + delta;
+}
 </script>
 
 <style scoped>
+:global(*),
+:global(*::before),
+:global(*::after) {
+  box-sizing: border-box;
+}
 :global(body) {
   margin: 0;
   background: #0f172a;
   color: #e2e8f0;
+  overflow-x: hidden;
 }
 .page {
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: min(1200px, 100%);
+  margin: 0 auto;
 }
 .page__header {
   display: flex;
@@ -143,6 +304,7 @@ function copyCode(name: string) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
   gap: 12px;
+  width: 100%;
 }
 .grid__item {
   border: 1px solid #1e293b;
@@ -155,63 +317,186 @@ function copyCode(name: string) {
   align-items: center;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.15s ease;
-  position: relative;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .grid__item:hover {
   border-color: #38bdf8;
   transform: translateY(-1px);
   box-shadow: 0 10px 25px rgba(56, 189, 248, 0.15);
 }
+.grid__item:focus-visible {
+  outline: 2px solid #38bdf8;
+}
 .grid__label {
   font-size: 12px;
   color: #94a3b8;
   word-break: break-all;
+  text-align: center;
 }
-.tooltip {
-  position: absolute;
-  left: 50%;
-  bottom: 90%;
-  transform: translate(-50%, 8px);
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(56, 189, 248, 0.5);
-  color: #e2e8f0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  min-width: 300px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
-  z-index: 2;
+.preview {
+  margin-top: 18px;
+  border: 1px solid #1e293b;
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.grid__item:hover .tooltip {
-  opacity: 1;
-  transform: translate(-50%, -2px);
-  pointer-events: auto;
+.preview__row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
 }
-.tooltip__path {
-  font-size: 12px;
+.preview__icon {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+}
+.preview__name {
+  font-size: 13px;
   color: #cbd5e1;
   word-break: break-all;
-  margin-bottom: 8px;
 }
-.tooltip__actions {
+.preview__controls {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
-.tooltip__actions button {
+.color-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+}
+.color-panel__header {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+.color-panel__inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.input--color {
+  padding: 0;
+  width: 52px;
+  min-width: 52px;
+  height: 42px;
+}
+.format-toggle {
+  display: inline-flex;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(11, 18, 32, 0.8);
+}
+.format-toggle__option {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.format-toggle__option + .format-toggle__option {
+  border-left: 1px solid #1e293b;
+}
+.format-toggle__option.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: #e2e8f0;
+}
+.preview__controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+  min-width: 180px;
+}
+.input {
+  padding: 10px 12px;
+  border: 1px solid #1e293b;
+  background: #0b1220;
+  color: #e2e8f0;
+  border-radius: 8px;
+}
+.input:focus {
+  outline: 2px solid #38bdf8;
+  border-color: transparent;
+}
+.preview__path {
+  font-size: 12px;
+  color: #94a3b8;
+  word-break: break-all;
+  background: rgba(11, 18, 32, 0.8);
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.preview__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.preview__actions button {
   flex: 1;
   border: 1px solid #38bdf8;
   background: rgba(56, 189, 248, 0.08);
   color: #e2e8f0;
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 10px 12px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
 }
-.tooltip__actions button:hover {
+.preview__actions button:hover {
   background: rgba(56, 189, 248, 0.2);
+}
+.rotate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+.rotate__label {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+.rotate__control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rotate__btn {
+  border: 1px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  min-width: 56px;
+  font-size: 14px;
+  transition: background 0.12s ease;
+}
+.rotate__btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+.rotate__input {
+  text-align: center;
+  flex: 1;
+}
+.rotate__input::-webkit-inner-spin-button,
+.rotate__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.rotate__input[type='number'] {
+  -moz-appearance: textfield;
 }
 .toast {
   position: fixed;
