@@ -1,6 +1,10 @@
-# Vite Plugin: vite-plugin-svg-icon-types
+# svg-icon-types
 
-自动扫描 SVG 目录，生成类型声明和可视化预览页面的 Vite 插件。用来给类似 `SvgIcon` 组件的 `name` 属性提供字面量类型提示，同时提供一个无需额外配置的图标预览/复制界面。
+自动扫描 `SVG` 目录，生成类型声明和可视化预览页面的 Vite 插件。用来给类似 `SvgIcon` 组件的 `name` 属性提供字面量类型提示，同时提供一个无需额外配置的图标预览/复制界面。
+
+## 效果预览
+
+![](./public/img/example.png)
 
 ## 功能
 
@@ -45,13 +49,15 @@ module.exports = {
 ## 预览页能力
 
 - 搜索：按名称或相对路径（不含 .svg）
-- Tooltip：悬停显示文件路径，提供“复制名称”“复制代码”按钮
-- 点击条目：复制名称
-- 统计：显示过滤后/总数
+- 点击单个图标，进入图标操作面板
+- 如遇到颜色锁定（fill/stroke 固定颜色）无法修改的问题，可在 [svg-color-unlock](https://xietiansheng.github.io/svg-color-unlock/) 项目快速修改源码
 
 ## 默认生成的文件
 
+> 建议将 `/tmp` 目录加入 `.gitignore`
+
 - `src/types/generated-svg-names.d.ts`
+
 - `tmp/icon-preview/generated-preview.vue`
 - `tmp/icon-preview/main.ts`
 - `tmp/icon-preview.html`（作为多入口）
@@ -61,11 +67,17 @@ module.exports = {
 ```ts
 // ⚠️ 以下所有参数均为默认值，所有参数均为可选
 svgIconTypes({
-  iconsDir: "src/assets/svg", // 扫描目录
-  output: "src/types/generated-svg-names.d.ts", // 类型输出
+  // 扫描目录
+  iconsDir: "src/assets/svg",
+  // 类型输出
+  output: "src/types/generated-svg-names.d.ts",
+  // 预览页面输出
   previewVueOutput: "tmp/icon-preview/generated-preview.vue",
+  // 预览页面 main.ts 输出
   previewMainOutput: "tmp/icon-preview/main.ts",
+  // 预览页面 html 输出
   previewHtmlOutput: "tmp/icon-preview.html",
+  // 文件变更防抖时间（毫秒）
   debounceMs: 100,
 });
 ```
@@ -77,3 +89,7 @@ svgIconTypes({
 - 生成的类型声明文件中，类型名为 `SvgIconName`
 - 预览页面路径为 `/tmp/icon-preview.html`
 - 预览页面使用 Vue 3 + Vite 构建
+
+## 问题反馈与建议
+
+如有任何问题或建议，欢迎在 [GitHub 仓库](https://github.com/xietiansheng/vite-plugin-svg-icon-types) 提交 issue 或 PR。
